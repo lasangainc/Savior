@@ -1,32 +1,26 @@
-//
-//  SaviorApp.swift
-//  Savior
-//
-//  Created by Benji on 2026-10-15.
-//
-
 import SwiftUI
-import SwiftData
 
 @main
 struct SaviorApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    @State private var store = DownloadStore()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(store: store)
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+                    store.stopAll()
+                }
         }
-        .modelContainer(sharedModelContainer)
+        .defaultSize(width: 860, height: 680)
+        .windowResizability(.contentMinSize)
+        .commands {
+            CommandGroup(after: .newItem) {
+                Button("Open Download Folder", systemImage: "folder") { store.openDestination() }
+                    .keyboardShortcut("o", modifiers: [.command, .shift])
+            }
+        }
+        Settings {
+            SettingsView(store: store)
+        }
     }
 }
